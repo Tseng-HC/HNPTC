@@ -1,10 +1,10 @@
-<!-- ver0.9 -->
+<!-- ver0.91 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>頭頸專研活動報名表單</title>
+    <title>活動報名表單</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         :root { --primary-color: #06c755; --bg-color: #f5f5f5; --btn-guest-color: #6c757d; }
@@ -12,16 +12,6 @@
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #333; margin-bottom: 20px; }
         
-        /* 區塊樣式 */
-        .auth-box {
-            background-color: #f0f9ff;
-            border: 1px solid #bae3ff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
         .form-group { margin-bottom: 20px; }
         label.section-title { display: block; margin-bottom: 10px; font-weight: bold; color: #333; font-size: 1.05em; border-left: 4px solid var(--primary-color); padding-left: 8px; }
         label.section-title::after { content: " *"; color: #e53935; }
@@ -62,12 +52,6 @@
 
 <div class="container">
     
-    <!-- 登入成功歡迎區塊 (僅已登入者顯示) -->
-    <div id="welcomeSection" class="auth-box" style="display:none; background-color: #e8f5e9; border-color: #c8e6c9;">
-        嗨，<strong id="displayLineName">User</strong>！<br>
-        <span style="font-size: 0.85em; color: #4caf50;">已連結 LINE 帳號，可接收通知。</span>
-    </div>
-
     <h2>📝 活動報名表</h2>
     
     <form id="mainForm">
@@ -135,7 +119,7 @@
             <!-- 雙按鈕 -->
             <div class="btn-group">
                 <button type="button" id="btnLinkSubmit" class="btn-link-submit" onclick="handleLinkSubmit()">
-                    願意接受 Line 提醒，連結帳號並送出
+                    確認報名並接收提醒
                 </button>
                 <button type="button" id="btnGuestSubmit" class="btn-guest-submit" onclick="handleGuestSubmit()">
                     報名但不接收提醒
@@ -187,13 +171,6 @@
                 if (idToken) {
                     userProfile.userId = idToken.sub;
                     userProfile.displayName = idToken.name || "LINE 用戶";
-                    
-                    // 顯示歡迎訊息
-                    document.getElementById('welcomeSection').style.display = 'block';
-                    document.getElementById('displayLineName').textContent = userProfile.displayName;
-                    
-                    // 如果已登入，更改按鈕文字提示用戶已連結
-                    document.getElementById('btnLinkSubmit').textContent = "確認報名並接收提醒 (已連結)";
                 }
             } else {
                 isGuest = true;
@@ -255,7 +232,7 @@
         };
     }
 
-    // [按鈕 1] 連結並送出 (接收提醒)
+    // [按鈕 1] 確認報名並接收提醒
     async function handleLinkSubmit() {
         if (!validateForm()) return;
 
@@ -310,12 +287,15 @@
             // 清除暫存
             localStorage.removeItem('liff_form_backup');
 
-            // 檢查是否要加入好友
+            // 檢查是否要加入好友 (這裡邏輯為：若勾選且在 LINE 內則跳轉，PC 端若已透過 login 授權則已加入)
             const shouldAddFriend = document.getElementById('addFriendCheck').checked;
             
+            // 只有在送出成功後，如果需要跳轉加好友才跳轉
+            // 由於登入流程(bot_prompt)通常已包含加好友，這裡主要針對沒透過login流程但勾選的人
+            // 或是為了確保而再次跳轉
             if (shouldAddFriend && CONFIG.LINE_OA_ID.includes("@")) {
                 setTimeout(() => {
-                    alert("報名成功！即將跳轉至官方帳號加入好友...");
+                    alert("報名成功！即將前往官方帳號...");
                     window.location.href = "https://line.me/R/ti/p/" + CONFIG.LINE_OA_ID;
                 }, 1000);
             } else {
@@ -355,6 +335,9 @@
         const sources = [];
         document.querySelectorAll(`input[name="source"]:checked`).forEach(cb => sources.push(cb.value));
         formData.source = sources;
+
+        // 儲存加好友勾選狀態
+        formData.addFriend = document.getElementById('addFriendCheck').checked;
         
         // 標記這是一個「準備送出」的狀態
         formData.autoSubmit = true; 
@@ -388,11 +371,16 @@
                 });
             }
 
-            // 如果標記為自動送出，且已登入成功，則自動觸發送出 (UX優化)
+            // 還原加好友勾選
+            if (data.addFriend !== undefined) {
+                document.getElementById('addFriendCheck').checked = data.addFriend;
+            }
+
+            // 如果標記為自動送出，且已登入成功，則自動觸發送出 (達成「連結完畢再顯示報名成功」)
             if (data.autoSubmit && liff.isLoggedIn()) {
-                console.log("偵測到登入回訪，準備自動送出...");
-                // 這裡選擇不自動 click，而是讓用戶確認後自己點，避免太突兀，但資料已還原
-                // 若要全自動可執行: handleLinkSubmit();
+                console.log("偵測到登入回訪，自動送出...");
+                // 自動執行送出邏輯
+                handleLinkSubmit();
             }
             
         } catch (e) {
