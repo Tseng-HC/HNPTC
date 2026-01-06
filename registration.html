@@ -11,17 +11,26 @@
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #333; margin-bottom: 20px; }
         
-        /* 警示框樣式 */
-        .warning-box {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            padding: 12px;
+        /* 區塊樣式 */
+        .auth-box {
+            background-color: #f0f9ff;
+            border: 1px solid #bae3ff;
+            padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-            line-height: 1.5;
+            text-align: center;
+        }
+        .btn-line-login {
+            background-color: #06c755; color: white; padding: 10px 20px;
+            border-radius: 6px; text-decoration: none; font-weight: bold;
+            display: inline-block; margin-top: 5px; cursor: pointer; border: none; font-size: 14px;
+        }
+
+        /* 警示框 */
+        .warning-box {
+            background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;
+            padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+            display: none; line-height: 1.5;
         }
 
         .form-group { margin-bottom: 20px; }
@@ -36,19 +45,17 @@
         .option-label:hover { background-color: #f9f9f9; }
         .option-label input { margin-right: 10px; transform: scale(1.2); }
         
-        button { width: 100%; padding: 14px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; opacity: 0.5; pointer-events: none; transition: opacity 0.3s; }
-        button.ready { opacity: 1; pointer-events: auto; }
+        button#submitBtn { width: 100%; padding: 14px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; opacity: 0.5; pointer-events: none; transition: opacity 0.3s; }
+        button#submitBtn.ready { opacity: 1; pointer-events: auto; }
         button:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
         
         #status { margin-top: 15px; text-align: center; font-size: 14px; color: #666; min-height: 20px; }
 
-        /* === 新增：好友邀請 Modal 樣式 === */
+        /* === 好友邀請 Modal === */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000;
-            display: none; /* 預設隱藏 */
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
+            z-index: 1000; display: none;
         }
         .modal-content {
             background: white; padding: 25px; border-radius: 12px;
@@ -58,19 +65,13 @@
         .modal-title { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; color: #333; }
         .modal-desc { color: #666; margin-bottom: 20px; line-height: 1.5; font-size: 0.95em; }
         .modal-btn-group { display: flex; flex-direction: column; gap: 10px; }
-        .btn-add-friend {
-            background-color: #06c755; color: white; padding: 12px;
-            border-radius: 8px; text-decoration: none; font-weight: bold; display: block;
-        }
-        .btn-skip {
-            background-color: transparent; color: #999; padding: 8px;
-            border: none; cursor: pointer; font-size: 0.9em;
-        }
+        .btn-add-friend { background-color: #06c755; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; }
+        .btn-skip { background-color: transparent; color: #999; padding: 8px; border: none; cursor: pointer; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
-<!-- 新增：好友邀請 Modal -->
+<!-- 好友邀請 Modal (僅對已登入但未加好友者顯示) -->
 <div id="friendModal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-title">👋 歡迎光臨</div>
@@ -78,7 +79,6 @@
             為了不錯過活動通知，<br>建議您加入官方帳號為好友！
         </div>
         <div class="modal-btn-group">
-            <!-- href 之後會透過 JS 動態寫入 -->
             <a id="addFriendLink" href="#" target="_blank" class="btn-add-friend">加入好友</a>
             <button class="btn-skip" onclick="closeFriendModal()">暫時不要，繼續填單</button>
         </div>
@@ -86,9 +86,28 @@
 </div>
 
 <div class="container">
+    <!-- 訪客/登入狀態區塊 -->
+    <div id="authSection" class="auth-box" style="display:none;">
+        <div>目前為 <strong>訪客模式</strong></div>
+        <div style="font-size: 0.85em; color: #666; margin: 8px 0;">
+            訪客無法收到 LINE 自動提醒。<br>若需要提醒功能，請先登入。
+        </div>
+        <button onclick="loginLine()" class="btn-line-login">LINE 登入</button>
+        <div style="margin-top: 10px; font-size: 0.9em;">
+             或 <a id="guestAddFriendLink" href="#" target="_blank" style="color: #06c755;">加入官方帳號好友</a>
+        </div>
+    </div>
+
+    <!-- 登入成功歡迎區塊 -->
+    <div id="welcomeSection" class="auth-box" style="display:none; background-color: #e8f5e9; border-color: #c8e6c9;">
+        嗨，<strong id="displayLineName">User</strong>！<br>
+        <span style="font-size: 0.85em; color: #4caf50;">已連結 LINE 帳號，可接收通知。</span>
+    </div>
+
     <div id="lineWarning" class="warning-box">
-        ⚠️ <strong>溫馨提醒</strong><br>
-        如希望收到 Line 提醒，建議用 Line 掃碼或直接在 Line APP 內開啟此連結填寫，以確保功能正常。
+        ⚠️ <strong>注意</strong><br>
+        您選擇了「願意接受通知」，但尚未登入 LINE。<br>
+        請點擊上方的「LINE 登入」按鈕，否則系統無法傳送通知給您。
     </div>
 
     <h2>📝 活動報名表</h2>
@@ -148,8 +167,8 @@
         <div class="form-group">
             <label class="section-title">是否願意接受 LINE 課程提醒通知</label>
             <div class="radio-group" style="flex-direction: row; gap: 20px;">
-                <label class="option-label" style="flex:1"><input type="radio" name="notify" value="是" required> 是</label>
-                <label class="option-label" style="flex:1"><input type="radio" name="notify" value="否"> 否</label>
+                <label class="option-label" style="flex:1"><input type="radio" name="notify" value="是" required onchange="checkNotify(this)"> 是</label>
+                <label class="option-label" style="flex:1"><input type="radio" name="notify" value="否" onchange="checkNotify(this)"> 否</label>
             </div>
         </div>
 
@@ -167,75 +186,65 @@
         LIFF_ID: "2008806287-9a1hHluF", 
         GAS_URL: "https://script.google.com/macros/s/AKfycbx74tnCe5wk-9WXWR-6Nrb8VE1R3iaXq33T6tpitgjk0PCYreNSoilkQ6QSDhghf4jlPQ/exec",
         
-        // 請填入您的官方帳號 Basic ID (要有 @ 符號，例如 @123abcde)
-        // 用途：當偵測到不是好友時，按鈕連結到這個加好友網址
+        // 請填入您的官方帳號 Basic ID (要有 @ 符號)
         LINE_OA_ID: "@您的官方帳號ID" 
     };
     // ==========================================
 
     let userProfile = { userId: "", displayName: "" };
+    let isGuest = true; // 預設為訪客
     const submitBtn = document.getElementById('submitBtn');
     const statusDiv = document.getElementById('status');
 
-    // 關閉好友邀請彈窗
     function closeFriendModal() {
         document.getElementById('friendModal').style.display = 'none';
+    }
+
+    // 觸發手動登入
+    function loginLine() {
+        if (!liff.isLoggedIn()) {
+            // bot_prompt: 'normal' 會在登入時順便問要不要加好友
+            liff.login({ bot_prompt: 'normal' });
+        }
+    }
+
+    // 當用戶切換「接收通知」選項時檢查是否為訪客
+    function checkNotify(radio) {
+        const warning = document.getElementById('lineWarning');
+        if (radio.value === "是" && isGuest) {
+            warning.style.display = 'block';
+        } else {
+            warning.style.display = 'none';
+        }
     }
 
     // 1. 初始化 LIFF
     async function initLiff() {
         try {
-            // 注意：要使用 getFriendship()，後台必須已連結官方帳號 (Linked OA)
             await liff.init({ liffId: CONFIG.LIFF_ID });
             
-            // 偵測是否在 LINE App 內開啟
-            if (!liff.isInClient()) {
-                document.getElementById('lineWarning').style.display = 'block';
+            // 設定加入好友連結 (給訪客用的)
+            if (CONFIG.LINE_OA_ID) {
+                const oaLink = "https://line.me/R/ti/p/" + CONFIG.LINE_OA_ID;
+                document.getElementById('guestAddFriendLink').href = oaLink;
+                document.getElementById('addFriendLink').href = oaLink;
             }
-            
+
+            // === 關鍵修改：不強制登入 ===
             if (!liff.isLoggedIn()) {
-                // 第三個參數 { bot_prompt: 'normal' } 是為了在登入頁面顯示加好友選項
-                // 但主要還是依賴 Console 的 Linked OA 設定
-                liff.login({ bot_prompt: 'normal' }); 
-                return;
-            }
-
-            const idToken = liff.getDecodedIDToken();
-
-            if (idToken) {
-                userProfile.userId = idToken.sub; 
-                userProfile.displayName = idToken.name; 
-
-                if (!userProfile.displayName) {
-                    console.warn("抓不到使用者名稱，請確認 LIFF Scope 有開啟 profile");
-                    userProfile.displayName = "未授權名稱用戶";
-                }
-
-                console.log("LIFF Ready:", userProfile);
+                // [訪客模式]
+                isGuest = true;
+                console.log("訪客模式");
+                document.getElementById('authSection').style.display = 'block'; // 顯示登入按鈕
+                
+                // 解鎖送出按鈕 (讓訪客可以填表)
                 submitBtn.textContent = "確認送出";
                 submitBtn.classList.add('ready');
 
-                // === 新增：檢查好友狀態邏輯 ===
-                // 只有在 LINE App 內 (isInClient) 才能準確使用 getFriendship
-                if (liff.isInClient() && CONFIG.LINE_OA_ID.includes("@")) {
-                    try {
-                        const friendship = await liff.getFriendship();
-                        console.log("好友狀態:", friendship.friendFlag);
-                        
-                        // 如果不是好友 (friendFlag 為 false)，顯示邀請彈窗
-                        if (!friendship.friendFlag) {
-                            const addUrl = "https://line.me/R/ti/p/" + CONFIG.LINE_OA_ID;
-                            document.getElementById('addFriendLink').href = addUrl;
-                            document.getElementById('friendModal').style.display = 'flex';
-                        }
-                    } catch (fError) {
-                        console.error("好友狀態檢查失敗 (可能是後台未連結 OA):", fError);
-                    }
-                }
-                // ============================
-
             } else {
-                statusDiv.innerText = "無法讀取 ID Token";
+                // [已登入模式]
+                isGuest = false;
+                handleLoggedInUser();
             }
 
         } catch (err) {
@@ -244,13 +253,52 @@
         }
     }
 
-    // 2. 表單送出 (邏輯不變)
+    // 處理已登入使用者的邏輯
+    async function handleLoggedInUser() {
+        const idToken = liff.getDecodedIDToken();
+
+        if (idToken) {
+            userProfile.userId = idToken.sub; 
+            userProfile.displayName = idToken.name || "LINE 用戶"; 
+
+            console.log("LIFF Ready:", userProfile);
+            
+            // 更新 UI
+            document.getElementById('welcomeSection').style.display = 'block';
+            document.getElementById('displayLineName').textContent = userProfile.displayName;
+            
+            // 解鎖按鈕
+            submitBtn.textContent = "確認送出";
+            submitBtn.classList.add('ready');
+
+            // 檢查好友狀態 (僅在 APP 內有效)
+            if (liff.isInClient() && CONFIG.LINE_OA_ID.includes("@")) {
+                try {
+                    const friendship = await liff.getFriendship();
+                    if (!friendship.friendFlag) {
+                        document.getElementById('friendModal').style.display = 'flex';
+                    }
+                } catch (e) {
+                    console.warn("無法取得好友狀態");
+                }
+            }
+        }
+    }
+
+    // 2. 表單送出
     document.getElementById('mainForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         if (!CONFIG.GAS_URL || CONFIG.GAS_URL.includes("請填入")) {
             alert("錯誤：尚未設定 GAS 網址");
             return;
+        }
+
+        // 訪客防呆檢查：如果選了「是」通知，但沒登入，再次提醒
+        const notifyValue = document.querySelector('input[name="notify"]:checked').value;
+        if (isGuest && notifyValue === "是") {
+            const confirmGuest = confirm("您選擇了「接受提醒」，但您目前為訪客模式 (未登入 LINE)，系統將無法傳送通知。\n\n要繼續送出嗎？(若要收到通知請按取消並進行登入)");
+            if (!confirmGuest) return;
         }
 
         const sourceCheckboxes = document.querySelectorAll('input[name="source"]:checked');
@@ -263,10 +311,10 @@
         const session = document.querySelector('input[name="session"]:checked').value;
         const gender = document.querySelector('input[name="gender"]:checked').value;
         const age = document.querySelector('input[name="age"]:checked').value;
-        const notify = document.querySelector('input[name="notify"]:checked').value;
 
         let remindDate = "";
-        if (notify === "是") {
+        // 只有在非訪客 (有 UID) 且同意通知時，才計算日期
+        if (!isGuest && notifyValue === "是") {
             const dateMatch = session.match(/(\d+)\/(\d+)/); 
             if (dateMatch) {
                 const month = dateMatch[1].padStart(2, '0');
@@ -282,14 +330,15 @@
         statusDiv.style.color = "#666";
 
         const payload = {
-            uid: userProfile.userId,
-            lineName: userProfile.displayName,
+            // 如果是訪客，UID 傳送 'guest'，Line名稱傳送 '訪客'
+            uid: userProfile.userId || "guest",
+            lineName: userProfile.displayName || "訪客(未登入)",
             realName: document.getElementById('realName').value,
             session: session,
             gender: gender,
             age: age,
             source: sources,
-            notify: notify,
+            notify: notifyValue,
             remindDate: remindDate 
         };
 
@@ -304,7 +353,13 @@
             statusDiv.textContent = "✅ 報名成功！視窗將在 3 秒後關閉";
             statusDiv.style.color = "green";
             submitBtn.textContent = "報名成功";
-            setTimeout(() => { liff.closeWindow(); }, 3000);
+            
+            // 只有在 LIFF 視窗內才自動關閉，PC 瀏覽器則不關
+            if (liff.isInClient()) {
+                setTimeout(() => { liff.closeWindow(); }, 3000);
+            } else {
+                setTimeout(() => { alert("資料已送出！您可以關閉此分頁。"); }, 500);
+            }
 
         } catch (error) {
             console.error('Submit Error:', error);
