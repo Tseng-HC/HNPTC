@@ -1,4 +1,4 @@
-<!-- ver0.94 -->
+<!-- ver0.95 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -281,15 +281,20 @@
     async function handleLinkSubmit() {
         if (!validateForm()) return;
 
-        // 如果還沒登入，先儲存資料並觸發登入
+        // 如果還沒登入
         if (!liff.isLoggedIn()) {
-            saveFormData(); // 暫存目前填寫的內容
-            // bot_prompt: 'normal' 會在授權頁顯示加好友選項
+            // [新增功能] 1. 先跳出警告視窗
+            alert("需登入 Line 連結才有辦法收到提醒");
+
+            // 2. 暫存目前填寫的內容
+            saveFormData();
+            
+            // 3. 觸發登入 (bot_prompt: 'normal' 會在授權頁顯示加好友選項)
             liff.login({ bot_prompt: 'normal', redirectUri: window.location.href });
             return;
         }
 
-        // 已登入，直接送出
+        // 已登入，直接送出 (含 ID)
         const data = getFormData("是");
         await submitToGAS(data);
     }
@@ -298,7 +303,8 @@
     async function handleGuestSubmit() {
         if (!validateForm()) return;
         
-        // 強制設定為不接收
+        // 強制設定為不接收，且因 isGuest 為 true，uid 會是 "guest" (無 ID)
+        // 即使使用者按了按鈕1但沒登入(切掉畫面)，再按此按鈕也會正確傳送無ID資料
         const data = getFormData("否");
         await submitToGAS(data);
     }
@@ -332,12 +338,10 @@
             // 清除暫存
             localStorage.removeItem('liff_form_backup');
 
-            // 檢查是否要加入好友 (這裡邏輯為：若勾選且在 LINE 內則跳轉，PC 端若已透過 login 授權則已加入)
+            // 檢查是否要加入好友
             const shouldAddFriend = document.getElementById('addFriendCheck').checked;
             
-            // 只有在送出成功後，如果需要跳轉加好友才跳轉
-            // 由於登入流程(bot_prompt)通常已包含加好友，這裡主要針對沒透過login流程但勾選的人
-            // 或是為了確保而再次跳轉
+            // 如果需要跳轉加好友 (且已有官方帳號ID)
             if (shouldAddFriend && CONFIG.LINE_OA_ID.includes("@")) {
                 setTimeout(() => {
                     alert("報名成功！即將前往官方帳號...");
@@ -421,10 +425,10 @@
                 document.getElementById('addFriendCheck').checked = data.addFriend;
             }
 
-            // 如果標記為自動送出，且已登入成功，則自動觸發送出 (達成「連結完畢再顯示報名成功」)
+            // [核心邏輯]：如果標記為自動送出，且已登入成功，則自動觸發送出 (達成「登入後傳送ID資料」)
+            // 如果沒登入(使用者切掉登入畫面回來)，這裡不會執行，使用者可點擊第二顆按鈕進行無ID傳送
             if (data.autoSubmit && liff.isLoggedIn()) {
                 console.log("偵測到登入回訪，自動送出...");
-                // 自動執行送出邏輯
                 handleLinkSubmit();
             }
             
