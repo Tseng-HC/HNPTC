@@ -1,0 +1,214 @@
+<!-- ver0.37 Clean UI + Copyright -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>預約治療師</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .hidden { display: none; }
+        input, select, textarea { font-size: 16px; }
+    </style>
+</head>
+<body class="bg-gray-50 p-3 relative min-h-screen flex flex-col">
+
+    <div class="fixed top-2 right-2 text-[10px] text-gray-300 font-mono z-0 pointer-events-none">ver0.37</div>
+
+    <div id="msg-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-sm z-50 hidden transition-opacity duration-300">提示訊息</div>
+
+    <div id="loading">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <p id="loading-text" class="text-gray-500">載入預約系統...</p>
+        </div>
+    </div>
+
+    <div id="idle-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-[1000] flex flex-col justify-center items-center text-white text-center p-6">
+        <div class="mb-4 text-5xl">⚠️</div>
+        <h2 class="text-2xl font-bold mb-3">操作時間逾時</h2>
+        <p class="mb-8 text-gray-300 text-sm leading-relaxed">為了確保資料安全，<br>系統限制單次操作時間為 20 分鐘。<br>連線已自動中斷。</p>
+        <button onclick="location.reload()" class="w-full max-w-xs py-3 bg-green-600 rounded-lg font-bold hover:bg-green-700 transition shadow-lg border border-green-500">重新整理頁面</button>
+    </div>
+
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-sm p-4 space-y-3 mt-4 flex-grow w-full">
+        <h1 class="text-xl font-bold text-center text-green-700 mb-2">預約治療師</h1>
+        
+        <div id="form-section">
+            <form id="bookingForm" class="space-y-3" onsubmit="return false;">
+                <div><label class="block text-sm font-medium text-gray-700">姓名</label><input type="text" id="name" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入姓名"></div>
+                <div><label class="block text-sm font-medium text-gray-700">電話</label><input type="tel" id="phone" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話"></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">指定治療師</label>
+                    <select id="therapist" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-white"><option value="">載入中...</option></select>
+                </div>
+                <div><label class="block text-sm font-medium text-gray-700">期望預約時段</label><textarea id="time_slots" required rows="3" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="例如：1/5 下午 2:00&#10;1/6 上午 10:00"></textarea></div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="toReview()" class="w-3/5 py-3 bg-green-600 text-white rounded hover:bg-green-700 transition font-bold shadow">下一步</button>
+                    <button type="button" onclick="cancelForm()" class="w-2/5 py-3 bg-red-100 text-red-600 rounded hover:bg-red-200 transition font-bold">取消</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="review-section" class="hidden space-y-4">
+            <h2 class="text-base font-bold text-gray-700 border-b pb-2">請確認您的預約內容</h2>
+            <div class="space-y-3 text-sm bg-gray-50 p-3 rounded">
+                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">姓名</span><span id="review-name" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">電話</span><span id="review-phone" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">指定治療師</span><span id="review-therapist" class="font-bold text-gray-800"></span></div>
+                <div><span class="text-gray-500 block mb-1">期望時間</span><pre id="review-time" class="font-bold text-gray-800 whitespace-pre-wrap font-sans bg-white p-2 rounded border"></pre></div>
+            </div>
+            <div class="flex flex-col space-y-2 pt-1">
+                <button type="button" onclick="confirmSubmit()" class="w-full py-3 bg-green-600 text-white rounded hover:bg-green-700 transition font-bold shadow-lg text-lg">確認送出</button>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="backToEdit()" class="w-1/2 py-3 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition font-bold">修改</button>
+                    <button type="button" onclick="cancelForm()" class="w-1/2 py-3 bg-red-100 text-red-600 rounded hover:bg-red-200 transition font-bold">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="final-message" class="hidden flex-col items-center justify-center py-10 space-y-4 text-center">
+            <div id="final-icon" class="text-6xl">✅</div>
+            <h2 id="final-title" class="text-xl font-bold text-gray-800">資料已送出</h2>
+            <p id="final-desc" class="text-gray-500 text-sm">程式已完成處理。<br>若視窗未自動關閉，請手動關閉此頁面。</p>
+            <button onclick="liff.closeWindow()" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-bold transition">關閉視窗</button>
+        </div>
+    </div>
+    
+    <!-- ★★★ 版權宣告區 (前端) ★★★ -->
+    <div class="text-center text-[10px] text-gray-300 mt-6 pb-2 w-full">
+      &copy; <span id="copyright-year"></span> HNPTC All Rights Reserved. Design by HC. Tseng
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gasDeploymentId = urlParams.get('gasId');
+        let GAS_URL = "";
+        if (gasDeploymentId) { GAS_URL = `https://script.google.com/macros/s/${gasDeploymentId}/exec`; } 
+        else { console.error("Missing gasId"); alert("系統設定錯誤：網址缺少 gasId 參數，無法連結資料庫。"); }
+        const liffIdParam = urlParams.get('liffId');
+        const DEFAULT_LIFF_ID = '2008806287-jfDxgE50'; 
+        const LIFF_ID = liffIdParam || DEFAULT_LIFF_ID;
+        let g_uid = "", g_displayName = "", heartbeatInterval = null, sessionTimer = null;
+        const SESSION_LIMIT = 20 * 60 * 1000;
+
+        window.onload = function() {
+            // 自動設定版權年份
+            document.getElementById('copyright-year').textContent = new Date().getFullYear();
+
+            if(GAS_URL) {
+                initializeLiff();
+                fetchTherapistList();
+            }
+        };
+
+        function fetchTherapistList() {
+            const select = document.getElementById('therapist');
+            const CACHE_KEY = 'cached_therapists_' + (gasDeploymentId || 'default');
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) { try { renderOptions(select, JSON.parse(cachedData)); } catch(e) {} }
+            fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ type: 'get_therapists' }) })
+            .then(r => r.json()).then(d => { if (d.therapists && Array.isArray(d.therapists)) { localStorage.setItem(CACHE_KEY, JSON.stringify(d.therapists)); renderOptions(select, d.therapists); } })
+            .catch(e => { if(select.options.length <= 1) select.innerHTML = '<option value="不指定">不指定 (連線失敗)</option>'; });
+        }
+
+        function renderOptions(selectElement, list) {
+            const currentVal = selectElement.value; selectElement.innerHTML = ''; 
+            if (list.length === 0) { const opt = document.createElement('option'); opt.text = "暫無治療師資料"; selectElement.appendChild(opt); return; }
+            list.forEach(name => { const opt = document.createElement('option'); opt.value = name; opt.text = name; selectElement.appendChild(opt); });
+            if(currentVal) { for(let i=0; i<selectElement.options.length; i++) { if(selectElement.options[i].value === currentVal) { selectElement.value = currentVal; break; } } }
+        }
+
+        function showToast(m, isError = false) { const t = document.getElementById('msg-toast'); t.textContent = m; t.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg text-sm z-50 transition-opacity duration-300 ${isError ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'}`; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 3000); }
+
+        async function initializeLiff() {
+            try {
+                if (typeof liff === 'undefined') throw new Error('LIFF SDK 載入失敗');
+                await liff.init({ liffId: LIFF_ID });
+                if (!liff.isInClient()) { alert("偵測到非line內部瀏覽器，部分功能可能失效，建議用line app開啟"); }
+                if (!liff.isLoggedIn()) { if (!liff.isInClient()) { g_uid = "preview_user"; g_displayName = "預覽用戶"; } else { liff.login(); return; } } else { const idToken = liff.getDecodedIDToken(); g_uid = idToken.sub; g_displayName = idToken.name || "用戶"; }
+                fetch(GAS_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'track_open', uid: g_uid, name: g_displayName }) }).catch(e => console.log(e));
+                if (liff.isInClient()) await liff.sendMessages([{ type: 'text', text: '預約治療師' }]);
+                startHeartbeat(); startSessionTimer(); document.getElementById('loading').style.display = 'none';
+            } catch (error) { console.error('Init Error:', error); document.getElementById('loading').style.display = 'none'; showToast('系統初始化異常 (請檢查 LIFF 設定)', true); }
+        }
+
+        function startSessionTimer() { if (sessionTimer) clearTimeout(sessionTimer); sessionTimer = setTimeout(() => { document.getElementById('idle-overlay').classList.remove('hidden'); stopHeartbeat(); }, SESSION_LIMIT); }
+        function startHeartbeat() { if (heartbeatInterval) clearInterval(heartbeatInterval); heartbeatInterval = setInterval(() => { fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'heartbeat', uid: g_uid }) }); }, 1200000); }
+        function stopHeartbeat() { if (heartbeatInterval) clearInterval(heartbeatInterval); }
+
+        function syncData(actionType = 'sync_data', useKeepAlive = false) {
+            const formData = getFormData(); formData.type = actionType;
+            const fetchOptions = { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) };
+            if (useKeepAlive) fetchOptions.keepalive = true;
+            if (useKeepAlive && actionType !== 'sync_data') { fetch(GAS_URL, fetchOptions).catch(e => console.error(e)); return Promise.resolve(formData); }
+            return fetch(GAS_URL, fetchOptions).then(() => { return formData; });
+        }
+
+        function toReview() {
+            const name = document.getElementById('name').value.trim(); const phone = document.getElementById('phone').value.trim(); const time = document.getElementById('time_slots').value.trim();
+            if (!name || !phone || !time) { showToast("請完整填寫姓名、電話與期望時間", true); return; }
+            document.getElementById('review-name').textContent = name; document.getElementById('review-phone').textContent = phone; document.getElementById('review-therapist').textContent = document.getElementById('therapist').value; document.getElementById('review-time').textContent = time;
+            syncData('preview_form');
+            document.getElementById('form-section').classList.add('hidden'); document.getElementById('review-section').classList.remove('hidden'); window.scrollTo(0, 0);
+        }
+        function backToEdit() { document.getElementById('review-section').classList.add('hidden'); document.getElementById('form-section').classList.remove('hidden'); }
+
+        async function cancelForm() {
+            stopHeartbeat();
+            document.getElementById('loading').style.display = 'none';
+            showFinalScreen("已取消", "🚫", "您的預約操作已取消，可直接關閉視窗。");
+            const formData = getFormData();
+            fetch(GAS_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                keepalive: true, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    type: 'cancel_form', 
+                    uid: g_uid, 
+                    name: g_displayName,
+                    form_name: formData.form_name,
+                    form_phone: formData.form_phone,
+                    form_therapist: formData.form_therapist,
+                    form_time: formData.form_time
+                }) 
+            }).catch(e => console.error(e));
+            if (liff.isInClient()) { liff.closeWindow(); }
+        }
+
+        async function confirmSubmit() {
+            stopHeartbeat();
+            const btn = document.querySelector('button[onclick="confirmSubmit()"]'); btn.disabled = true; btn.innerText = "資料傳送中...";
+            try {
+                const formData = getFormData();
+                if (liff.isInClient()) {
+                    const msg = `預約資料如下\n姓名: ${formData.form_name}\n電話: ${formData.form_phone}\n指定治療師: ${formData.form_therapist}\n期望時間: ${formData.form_time}`;
+                    await liff.sendMessages([{ type: 'text', text: msg }]);
+                }
+                syncData('submit_form', true);
+                showFinalScreen("資料已送出", "✅", "您的預約資料已送出，可直接關閉視窗。");
+                if (liff.isInClient()) { liff.closeWindow(); }
+            } catch (error) { console.error(error); showToast('傳送失敗，請重新嘗試', true); btn.disabled = false; btn.innerText = "確認送出"; startHeartbeat(); }
+        }
+
+        function showFinalScreen(title, icon, desc) {
+            document.getElementById('form-section').classList.add('hidden'); document.getElementById('review-section').classList.add('hidden'); document.querySelector('h1').classList.add('hidden');
+            const finalDiv = document.getElementById('final-message'); document.getElementById('final-title').textContent = title; document.getElementById('final-icon').textContent = icon; document.getElementById('final-desc').innerHTML = desc;
+            finalDiv.classList.remove('hidden'); finalDiv.classList.add('flex');
+        }
+
+        function getFormData() {
+            return {
+                uid: g_uid, line_name: g_displayName,
+                form_name: document.getElementById('name').value,
+                form_phone: document.getElementById('phone').value,
+                form_therapist: document.getElementById('therapist').value,
+                form_time: document.getElementById('time_slots').value
+            };
+        }
+    </script>
+</body>
+</html>
