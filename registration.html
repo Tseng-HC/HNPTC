@@ -1,4 +1,4 @@
-<!-- ver0.96 -->
+<!-- ver0.97 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -80,7 +80,7 @@
     
     <!-- 版本號顯示區塊 -->
     <div style="text-align: right; font-size: 12px; color: #aaa; margin-bottom: 0;">
-        頭頸專研活動報名系統 ver0.96
+        頭頸專研活動報名系統 ver0.97
     </div>
 
     <h2>📝 頭頸專研活動報名表</h2>
@@ -371,19 +371,19 @@
         if (needRemind === "是") {
             // 必須至少勾選一種
             if (!checkLine && !checkEmail) {
-                alert("既然選擇接收提醒，請至少勾選 Line 或 Email 其中一種方式喔！");
+                alert("接收提醒需至少勾選 Line 或 Email 其中一種方式喔！");
                 return;
             }
 
             // 驗證 Line
             if (checkLine && isGuest) {
-                alert("您勾選了 Line 通知，請點擊「連結 Line 帳號」按鈕並完成登入授權。");
+                alert("Line 通知提醒，請點擊「連結 Line 帳號」按鈕並完成登入授權。");
                 return;
             }
 
             // 驗證 Email
             if (checkEmail && !emailVal) {
-                alert("您勾選了 Email 通知，請確實填寫 Email 欄位。");
+                alert("Email 通知，請確實填寫 Email 欄位。");
                 document.getElementById('emailInput').focus();
                 return;
             }
@@ -407,6 +407,7 @@
             }
         }
 
+        // [修改] 調整送出結構
         const payload = {
             uid: isGuest ? "guest" : userProfile.userId,
             lineName: isGuest ? "" : userProfile.displayName,
@@ -415,16 +416,18 @@
             gender: document.querySelector('input[name="gender"]:checked').value,
             age: document.querySelector('input[name="age"]:checked').value,
             source: Array.from(sourceCheckboxes).map(cb => cb.value).join(', '),
-            notify: needRemind, // 是/否
-            notifyType: [],     // ['Line', 'Email']
+            
+            // === 修改區段開始 ===
+            // 第9欄: Line提醒 (是/否)
+            lineRemind: (needRemind === "是" && checkLine) ? "是" : "否",
+            // 第10欄: Email
             email: emailVal,
+            // 第11欄: Email提醒 (是/否)
+            emailRemind: (needRemind === "是" && checkEmail) ? "是" : "否",
+            // === 修改區段結束 ===
+
             remindDate: remindDate
         };
-
-        if (checkLine) payload.notifyType.push("Line");
-        if (checkEmail) payload.notifyType.push("Email");
-        // 轉字串方便 GAS 處理
-        payload.notifyType = payload.notifyType.join(", ");
 
         // === 送出至 GAS ===
         try {
