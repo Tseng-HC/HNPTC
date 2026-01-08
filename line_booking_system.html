@@ -1,4 +1,4 @@
-<!-- ver0.37 Clean UI + Copyright -->
+<!-- ver1.00 Clean UI + Copyright -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -15,7 +15,7 @@
 </head>
 <body class="bg-gray-50 p-3 relative min-h-screen flex flex-col">
 
-    <div class="fixed top-2 right-2 text-[10px] text-gray-300 font-mono z-0 pointer-events-none">ver0.37</div>
+    <div class="fixed top-2 right-2 text-[10px] text-gray-300 font-mono z-0 pointer-events-none">ver1.00</div>
 
     <div id="msg-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-sm z-50 hidden transition-opacity duration-300">提示訊息</div>
 
@@ -88,9 +88,14 @@
         let GAS_URL = "";
         if (gasDeploymentId) { GAS_URL = `https://script.google.com/macros/s/${gasDeploymentId}/exec`; } 
         else { console.error("Missing gasId"); alert("系統設定錯誤：網址缺少 gasId 參數，無法連結資料庫。"); }
-        const liffIdParam = urlParams.get('liffId');
-        const DEFAULT_LIFF_ID = '2008806287-jfDxgE50'; 
-        const LIFF_ID = liffIdParam || DEFAULT_LIFF_ID;
+        const liffIdParam = urlParams.get('liffId');        
+        const LIFF_ID = liffIdParam; 
+        if (!LIFF_ID) {
+            console.error("Missing liffId");
+            alert("系統設定錯誤：網址缺少 liffId 參數，無法啟動應用程式。");
+        }
+
+
         let g_uid = "", g_displayName = "", heartbeatInterval = null, sessionTimer = null;
         const SESSION_LIMIT = 20 * 60 * 1000;
 
