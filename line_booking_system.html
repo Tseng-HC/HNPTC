@@ -1,4 +1,4 @@
-<!-- ver1.00 Clean UI + Copyright -->
+<!-- ver1.00 Clean UI + Copyright  -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -194,8 +194,8 @@
                     await liff.sendMessages([{ type: 'text', text: msg }]);
                 }
                 syncData('submit_form', true);
-                showFinalScreen("資料已送出", "✅", "您的預約資料已送出，可直接關閉視窗。");
-                if (liff.isInClient()) { liff.closeWindow(); }
+                showFinalScreen("資料已送出", "✅", "您的預約資料已送出，人員會與您聯繫<br>可直接關閉視窗。");
+                //if (liff.isInClient()) { liff.closeWindow(); }
             } catch (error) { console.error(error); showToast('傳送失敗，請重新嘗試', true); btn.disabled = false; btn.innerText = "確認送出"; startHeartbeat(); }
         }
 
