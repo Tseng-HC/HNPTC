@@ -1,10 +1,9 @@
-<!-- ver1.00 Clean UI + Copyright  -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>預約治療師</title>
+    <title>線上預約系統</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -15,14 +14,14 @@
 </head>
 <body class="bg-gray-50 p-3 relative min-h-screen flex flex-col">
 
-    <div class="fixed top-2 right-2 text-[10px] text-gray-300 font-mono z-0 pointer-events-none">ver1.00</div>
+    <div class="fixed top-2 right-2 text-[10px] text-gray-300 font-mono z-0 pointer-events-none">ver2.00</div>
 
     <div id="msg-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-sm z-50 hidden transition-opacity duration-300">提示訊息</div>
 
     <div id="loading">
         <div class="text-center">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p id="loading-text" class="text-gray-500">載入預約系統...</p>
+            <p id="loading-text" class="text-gray-500">系統載入中...</p>
         </div>
     </div>
 
@@ -34,15 +33,17 @@
     </div>
 
     <div class="max-w-md mx-auto bg-white rounded-lg shadow-sm p-4 space-y-3 mt-4 flex-grow w-full">
-        <h1 class="text-xl font-bold text-center text-green-700 mb-2">預約治療師</h1>
+        <h1 id="main-title" class="text-xl font-bold text-center text-green-700 mb-2">
+            線上預約系統
+        </h1>
         
         <div id="form-section">
             <form id="bookingForm" class="space-y-3" onsubmit="return false;">
                 <div><label class="block text-sm font-medium text-gray-700">姓名</label><input type="text" id="name" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入姓名"></div>
                 <div><label class="block text-sm font-medium text-gray-700">電話</label><input type="tel" id="phone" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話"></div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">指定治療師</label>
-                    <select id="therapist" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-white"><option value="">載入中...</option></select>
+                    <label id="label-staff-title" class="block text-sm font-medium text-gray-700">指定人員</label>
+                    <select id="staff" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-white"><option value="">載入中...</option></select>
                 </div>
                 <div><label class="block text-sm font-medium text-gray-700">期望預約時段</label><textarea id="time_slots" required rows="3" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="例如：1/5 下午 2:00&#10;1/6 上午 10:00"></textarea></div>
                 <div class="flex space-x-2 pt-2">
@@ -57,7 +58,7 @@
             <div class="space-y-3 text-sm bg-gray-50 p-3 rounded">
                 <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">姓名</span><span id="review-name" class="font-bold text-gray-800"></span></div>
                 <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">電話</span><span id="review-phone" class="font-bold text-gray-800"></span></div>
-                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">指定治療師</span><span id="review-therapist" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500 review-staff-label">指定人員</span><span id="review-staff" class="font-bold text-gray-800"></span></div>
                 <div><span class="text-gray-500 block mb-1">期望時間</span><pre id="review-time" class="font-bold text-gray-800 whitespace-pre-wrap font-sans bg-white p-2 rounded border"></pre></div>
             </div>
             <div class="flex flex-col space-y-2 pt-1">
@@ -77,9 +78,11 @@
         </div>
     </div>
     
-    <!-- ★★★ 版權宣告區 (前端) ★★★ -->
     <div class="text-center text-[10px] text-gray-300 mt-6 pb-2 w-full">
-      &copy; <span id="copyright-year"></span> HNPTC All Rights Reserved. Design by HC. Tseng
+      &copy; 
+      <span id="copyright-year"></span>
+      <span class="brand-name-text font-bold mx-1"></span> 
+      All Rights Reserved. Powered by HC. Tseng
     </div>
 
     <script>
@@ -98,6 +101,8 @@
 
         let g_uid = "", g_displayName = "", heartbeatInterval = null, sessionTimer = null;
         const SESSION_LIMIT = 20 * 60 * 1000;
+        // 全域變數存職稱，供後續使用
+        let g_staffTitle = "人員"; 
 
         window.onload = function() {
             // 自動設定版權年份
@@ -105,25 +110,120 @@
 
             if(GAS_URL) {
                 initializeLiff();
-                fetchTherapistList();
+                // ★ 改名：fetchStaffList
+                fetchStaffList();
             }
         };
 
-        function fetchTherapistList() {
-            const select = document.getElementById('therapist');
-            const CACHE_KEY = 'cached_therapists_' + (gasDeploymentId || 'default');
+        // ★ 新增：處理品牌與職稱顯示
+        function applyBranding(config) {
+            if (!config) return;
+            
+            // 1. 處理資料 (去除前後空白)
+            const mName = config.merchant_name ? config.merchant_name.trim() : "";
+            const sTitle = config.staff_title ? config.staff_title.trim() : "人員";
+            g_staffTitle = sTitle; // 更新全域變數
+
+            // 2. 處理「標題」邏輯 (H1 與 瀏覽器分頁)
+            // 格式：如果有商家名 -> "小明診所線上預約系統"
+            //       如果沒商家名 -> "線上預約系統"
+            const fullTitle = mName ? `${mName}線上預約系統` : "線上預約系統";
+            
+            document.title = fullTitle; // 更新分頁標題
+            const mainH1 = document.getElementById('main-title'); // 更新網頁大標題
+            if (mainH1) mainH1.innerText = fullTitle;
+
+            // 3. 處理「版權頁商家名」 (抓空格邏輯)
+            document.querySelectorAll('.brand-name-text').forEach(el => {
+                if (mName) {
+                    // ★ 有商家名：前面加一格空格，後面加句點
+                    // 顯示結果：© 2026 小明診所. All Rights...
+                    el.innerText = ` ${mName}. `; 
+                } else {
+                    // ★ 沒商家名：完全清空 (連空格都不留)
+                    // 顯示結果：© 2026 All Rights...
+                    el.innerText = "";
+                }
+            });
+
+            // 4. 更新職稱標籤 (表單區)
+            const label = document.getElementById('label-staff-title');
+            if (label) label.innerText = `指定${sTitle}`;
+
+            // 5. 更新職稱標籤 (確認區)
+            document.querySelectorAll('.review-staff-label').forEach(el => {
+                el.innerText = `指定${sTitle}`;
+            });
+
+            // 6. 更新選單預設文字
+            const select = document.getElementById('staff');
+            if (select && select.options.length > 0 && select.value === "") {
+                select.options[0].text = `請選擇${sTitle}...`;
+            }
+        }
+        // ★ 修改：函式名稱 fetchStaffList
+        function fetchStaffList() {
+            const select = document.getElementById('staff'); // ★ ID 改為 staff
+            const CACHE_KEY = 'cached_staff_' + (gasDeploymentId || 'default'); // Cache Key 改名
+            
+            // 先讀快取
             const cachedData = localStorage.getItem(CACHE_KEY);
-            if (cachedData) { try { renderOptions(select, JSON.parse(cachedData)); } catch(e) {} }
-            fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ type: 'get_therapists' }) })
-            .then(r => r.json()).then(d => { if (d.therapists && Array.isArray(d.therapists)) { localStorage.setItem(CACHE_KEY, JSON.stringify(d.therapists)); renderOptions(select, d.therapists); } })
-            .catch(e => { if(select.options.length <= 1) select.innerHTML = '<option value="不指定">不指定 (連線失敗)</option>'; });
+            if (cachedData) { 
+                try { 
+                    const parsed = JSON.parse(cachedData);
+                    // 相容舊快取格式
+                    const list = Array.isArray(parsed) ? parsed : (parsed.staff || []);
+                    const branding = Array.isArray(parsed) ? null : parsed.branding;
+                    
+                    renderOptions(select, list);
+                    if(branding) applyBranding(branding);
+                } catch(e) {} 
+            }
+
+            // ★ 請求類型改為 get_staff
+            fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ type: 'get_staff' }) })
+            .then(r => r.json())
+            .then(d => { 
+                // ★ 接收資料：d.staff 和 d.branding
+                const staffList = d.staff || d.StaffList || []; // 相容性處理
+                const branding = d.branding || {};
+
+                // 更新快取 (存整包)
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ staff: staffList, branding: branding })); 
+                
+                renderOptions(select, staffList);
+                applyBranding(branding);
+            })
+            .catch(e => { 
+                console.error(e);
+                if(select.options.length <= 1) select.innerHTML = '<option value="不指定">不指定 (連線失敗)</option>'; 
+            });
         }
 
         function renderOptions(selectElement, list) {
             const currentVal = selectElement.value; selectElement.innerHTML = ''; 
-            if (list.length === 0) { const opt = document.createElement('option'); opt.text = "暫無治療師資料"; selectElement.appendChild(opt); return; }
+            
+            // 動態顯示預設選項
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = "";
+            defaultOpt.text = `請選擇${g_staffTitle}...`;
+            selectElement.appendChild(defaultOpt);
+
+            if (!list || list.length === 0) { 
+                const opt = document.createElement('option'); 
+                opt.text = `暫無${g_staffTitle}資料`; 
+                selectElement.appendChild(opt); 
+                return; 
+            }
+            
             list.forEach(name => { const opt = document.createElement('option'); opt.value = name; opt.text = name; selectElement.appendChild(opt); });
-            if(currentVal) { for(let i=0; i<selectElement.options.length; i++) { if(selectElement.options[i].value === currentVal) { selectElement.value = currentVal; break; } } }
+            
+            // 保持選擇狀態
+            if(currentVal) { 
+                for(let i=0; i<selectElement.options.length; i++) { 
+                    if(selectElement.options[i].value === currentVal) { selectElement.value = currentVal; break; } 
+                } 
+            }
         }
 
         function showToast(m, isError = false) { const t = document.getElementById('msg-toast'); t.textContent = m; t.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-lg text-sm z-50 transition-opacity duration-300 ${isError ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'}`; t.style.display = 'block'; setTimeout(() => { t.style.display = 'none'; }, 3000); }
@@ -135,7 +235,10 @@
                 if (!liff.isInClient()) { alert("偵測到非line內部瀏覽器，部分功能可能失效，建議用line app開啟"); }
                 if (!liff.isLoggedIn()) { if (!liff.isInClient()) { g_uid = "preview_user"; g_displayName = "預覽用戶"; } else { liff.login(); return; } } else { const idToken = liff.getDecodedIDToken(); g_uid = idToken.sub; g_displayName = idToken.name || "用戶"; }
                 fetch(GAS_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'track_open', uid: g_uid, name: g_displayName }) }).catch(e => console.log(e));
-                if (liff.isInClient()) await liff.sendMessages([{ type: 'text', text: '預約治療師' }]);
+                
+                // 這裡的文字可以考慮之後也動態化
+                if (liff.isInClient()) await liff.sendMessages([{ type: 'text', text: '開啟預約系統' }]);
+                
                 startHeartbeat(); startSessionTimer(); document.getElementById('loading').style.display = 'none';
             } catch (error) { console.error('Init Error:', error); document.getElementById('loading').style.display = 'none'; showToast('系統初始化異常 (請檢查 LIFF 設定)', true); }
         }
@@ -153,9 +256,18 @@
         }
 
         function toReview() {
-            const name = document.getElementById('name').value.trim(); const phone = document.getElementById('phone').value.trim(); const time = document.getElementById('time_slots').value.trim();
+            const name = document.getElementById('name').value.trim(); 
+            const phone = document.getElementById('phone').value.trim(); 
+            const time = document.getElementById('time_slots').value.trim();
+            
             if (!name || !phone || !time) { showToast("請完整填寫姓名、電話與期望時間", true); return; }
-            document.getElementById('review-name').textContent = name; document.getElementById('review-phone').textContent = phone; document.getElementById('review-therapist').textContent = document.getElementById('therapist').value; document.getElementById('review-time').textContent = time;
+            
+            document.getElementById('review-name').textContent = name; 
+            document.getElementById('review-phone').textContent = phone; 
+            // ★ 修改：ID 改為 review-staff, 來源改為 staff
+            document.getElementById('review-staff').textContent = document.getElementById('staff').value || "(不指定)"; 
+            document.getElementById('review-time').textContent = time;
+            
             syncData('preview_form');
             document.getElementById('form-section').classList.add('hidden'); document.getElementById('review-section').classList.remove('hidden'); window.scrollTo(0, 0);
         }
@@ -177,7 +289,8 @@
                     name: g_displayName,
                     form_name: formData.form_name,
                     form_phone: formData.form_phone,
-                    form_therapist: formData.form_therapist,
+                    // ★ 修改：改為 form_staff
+                    form_staff: formData.form_staff,
                     form_time: formData.form_time
                 }) 
             }).catch(e => console.error(e));
@@ -190,7 +303,9 @@
             try {
                 const formData = getFormData();
                 if (liff.isInClient()) {
-                    const msg = `預約資料如下\n姓名: ${formData.form_name}\n電話: ${formData.form_phone}\n指定治療師: ${formData.form_therapist}\n期望時間: ${formData.form_time}`;
+                    // ★ 修改：LINE 訊息內容也改為動態 (或是通用詞)
+                    // 這裡先用 "指定人員" 以保持通用，或可用 g_staffTitle 變數
+                    const msg = `預約資料如下\n姓名: ${formData.form_name}\n電話: ${formData.form_phone}\n指定${g_staffTitle}: ${formData.form_staff}\n期望時間: ${formData.form_time}`;
                     await liff.sendMessages([{ type: 'text', text: msg }]);
                 }
                 syncData('submit_form', true);
@@ -210,7 +325,8 @@
                 uid: g_uid, line_name: g_displayName,
                 form_name: document.getElementById('name').value,
                 form_phone: document.getElementById('phone').value,
-                form_therapist: document.getElementById('therapist').value,
+                // ★ 修改：ID 改為 staff，變數改為 form_staff
+                form_staff: document.getElementById('staff').value,
                 form_time: document.getElementById('time_slots').value
             };
         }
