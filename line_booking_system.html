@@ -40,12 +40,12 @@
         <div id="form-section">
             <form id="bookingForm" class="space-y-3" onsubmit="return false;">
                 <div><label class="block text-sm font-medium text-gray-700">姓名</label><input type="text" id="name" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入姓名"></div>
-                <div><label class="block text-sm font-medium text-gray-700">電話</label><input type="tel" id="phone" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話"></div>
+                <div><label class="block text-sm font-medium text-gray-700">電話(純數字)</label><input type="tel" id="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')"required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話(請輸入純數字)"></div>
                 <div>
                     <label id="label-staff-title" class="block text-sm font-medium text-gray-700">指定人員</label>
                     <select id="staff" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-white"><option value="">載入中...</option></select>
                 </div>
-                <div><label class="block text-sm font-medium text-gray-700">期望預約時段</label><textarea id="time_slots" required rows="3" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="例如：1/5 下午 2:00&#10;1/6 上午 10:00"></textarea></div>
+                <div><label class="block text-sm font-medium text-gray-700">期望預約時段</label><textarea id="time_slots" required rows="3" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="例如：&#10;1/5 下午 2:00&#10;1/6 上午 10:00"></textarea></div>
                 <div class="flex space-x-2 pt-2">
                     <button type="button" onclick="toReview()" class="w-3/5 py-3 bg-green-600 text-white rounded hover:bg-green-700 transition font-bold shadow">下一步</button>
                     <button type="button" onclick="cancelForm()" class="w-2/5 py-3 bg-red-100 text-red-600 rounded hover:bg-red-200 transition font-bold">取消</button>
