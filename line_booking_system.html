@@ -34,7 +34,7 @@
 
     <div class="max-w-md mx-auto bg-white rounded-lg shadow-sm p-4 space-y-3 mt-4 flex-grow w-full">
         <h1 id="main-title" class="text-xl font-bold text-center text-green-700 mb-2">
-            線上預約系統
+            <span class="brand-name-text"></span>線上預約系統
         </h1>
         
         <div id="form-section">
@@ -110,7 +110,7 @@
     <div class="text-center text-[10px] text-gray-300 mt-6 pb-2 w-full">
       &copy; 
       <span id="copyright-year"></span>
-      <span class="brand-name-text font-bold mx-1"></span> 
+      <span class="brand-copyright-text font-bold mx-1"></span> 
       All Rights Reserved. Powered by HC. Tseng
     </div>
 
@@ -138,8 +138,7 @@
             document.getElementById('copyright-year').textContent = new Date().getFullYear();
 
             if(GAS_URL) {
-                initializeLiff();
-                // ★ 改名：fetchStaffList
+                initializeLiff();    
                 fetchStaffList();
             }
         };
@@ -148,49 +147,41 @@
         function applyBranding(config) {
             if (!config) return;
             
-            // 1. 處理資料 (去除前後空白)
             const mName = config.merchant_name ? config.merchant_name.trim() : "";
             const sTitle = config.staff_title ? config.staff_title.trim() : "人員";
-            g_staffTitle = sTitle; // 更新全域變數
+            g_staffTitle = sTitle;
 
-            // 2. 處理「標題」邏輯 (H1 與 瀏覽器分頁)
-            // 格式：如果有商家名 -> "小明診所線上預約系統"
-            //       如果沒商家名 -> "線上預約系統"
+            // A. 更新瀏覽器分頁標題 (純文字)
             const fullTitle = mName ? `${mName}線上預約系統` : "線上預約系統";
-            
-            document.title = fullTitle; // 更新分頁標題
-            const mainH1 = document.getElementById('main-title'); // 更新網頁大標題
-            if (mainH1) mainH1.innerText = fullTitle;
+            document.title = fullTitle;
 
-            // 3. 處理「版權頁商家名」 (抓空格邏輯)
+            // B. 更新「通用純文字」商家名稱 (例如：導覽列、標題)
             document.querySelectorAll('.brand-name-text').forEach(el => {
+                el.innerText = mName; // 顯示結果：小明診所
+            });
+
+            // C. 更新「版權專用」商家名稱 (帶點與空格)
+            document.querySelectorAll('.brand-copyright-text').forEach(el => {
                 if (mName) {
-                    // ★ 有商家名：前面加一格空格，後面加句點
-                    // 顯示結果：© 2026 小明診所. All Rights...
-                    el.innerText = ` ${mName}. `; 
+                    el.innerText = ` ${mName}. `; // 顯示結果： 小明診所. 
                 } else {
-                    // ★ 沒商家名：完全清空 (連空格都不留)
-                    // 顯示結果：© 2026 All Rights...
                     el.innerText = "";
                 }
             });
 
-            // 4. 更新職稱標籤 (表單區)
+            // D. 更新職稱相關標籤 (保持原樣)
             const label = document.getElementById('label-staff-title');
             if (label) label.innerText = `指定${sTitle}`;
-
-            // 5. 更新職稱標籤 (確認區)
+            
             document.querySelectorAll('.review-staff-label').forEach(el => {
                 el.innerText = `指定${sTitle}`;
             });
 
-            // 6. 更新選單預設文字
             const select = document.getElementById('staff');
             if (select && select.options.length > 0 && select.value === "") {
                 select.options[0].text = `請選擇${sTitle}...`;
             }
-        }
-        // ★ 修改：函式名稱 fetchStaffList
+        }        
         function fetchStaffList() {
             const select = document.getElementById('staff'); // ★ ID 改為 staff
             const CACHE_KEY = 'cached_staff_' + (gasDeploymentId || 'default'); // Cache Key 改名
@@ -202,10 +193,13 @@
                     const parsed = JSON.parse(cachedData);
                     // 相容舊快取格式
                     const list = Array.isArray(parsed) ? parsed : (parsed.staff || []);
-                    const branding = Array.isArray(parsed) ? null : parsed.branding;
-                    
-                    renderOptions(select, list);
-                    if(branding) applyBranding(branding);
+                    const branding = Array.isArray(parsed) ? null : parsed.branding;                    
+                    renderOptions(select, list);                    
+                    if(branding) {
+                        // 如果快取裡有舊資料，直接套用你剛剛改好的 applyBranding
+                        // 它會自動去填 brand-name-text 和 brand-copyright-text
+                        applyBranding(branding);
+                    }
                 } catch(e) {} 
             }
 
