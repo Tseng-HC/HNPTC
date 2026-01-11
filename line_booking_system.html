@@ -40,7 +40,15 @@
         <div id="form-section">
             <form id="bookingForm" class="space-y-3" onsubmit="return false;">
                 <div><label class="block text-sm font-medium text-gray-700">姓名</label><input type="text" id="name" required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入姓名"></div>
-                <div><label class="block text-sm font-medium text-gray-700">電話(純數字)</label><input type="tel" id="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')"required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話(請輸入純數字)"></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">電話(純數字)</label>
+                    <input type="tel" id="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')"required onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="請輸入電話(請輸入純數字)">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email (選填)</label>
+                    <input type="email" id="email" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-gray-50" placeholder="用於接收預約提醒通知">
+                </div>
+
                 <div>
                     <label id="label-staff-title" class="block text-sm font-medium text-gray-700">指定人員</label>
                     <select id="staff" onchange="syncData()" class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 bg-white"><option value="">載入中...</option></select>
@@ -56,10 +64,21 @@
         <div id="review-section" class="hidden space-y-4">
             <h2 class="text-base font-bold text-gray-700 border-b pb-2">請確認您的預約內容</h2>
             <div class="space-y-3 text-sm bg-gray-50 p-3 rounded">
-                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">姓名</span><span id="review-name" class="font-bold text-gray-800"></span></div>
-                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500">電話</span><span id="review-phone" class="font-bold text-gray-800"></span></div>
-                <div class="flex justify-between border-b border-gray-200 pb-1"><span class="text-gray-500 review-staff-label">指定人員</span><span id="review-staff" class="font-bold text-gray-800"></span></div>
-                <div><span class="text-gray-500 block mb-1">期望時間</span><pre id="review-time" class="font-bold text-gray-800 whitespace-pre-wrap font-sans bg-white p-2 rounded border"></pre></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1">
+                    <span class="text-gray-500">姓名</span><span id="review-name" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1">
+                    <span class="text-gray-500">電話</span><span id="review-phone" class="font-bold text-gray-800"></span></div>
+                <div class="flex justify-between border-b border-gray-200 pb-1">
+                    <span class="text-gray-500">Email</span>
+                    <span id="review-email" class="font-bold text-gray-800 break-all"></span>
+                </div>
+                <div class="flex justify-between border-b border-gray-200 pb-1">
+                    <span class="text-gray-500 review-staff-label">指定人員</span><span id="review-staff" class="font-bold text-gray-800"></span></div>
+                <div>
+                    <span class="text-gray-500 block mb-1">期望時間</span>
+                    <pre id="review-time" class="font-bold text-gray-800 whitespace-pre-wrap font-sans bg-white p-2 rounded border">
+                    </pre>
+                </div>
             </div>
             <div class="flex flex-col space-y-2 pt-1">
                 <button type="button" onclick="confirmSubmit()" class="w-full py-3 bg-green-600 text-white rounded hover:bg-green-700 transition font-bold shadow-lg text-lg">確認送出</button>
@@ -263,8 +282,8 @@
             if (!name || !phone || !time) { showToast("請完整填寫姓名、電話與期望時間", true); return; }
             
             document.getElementById('review-name').textContent = name; 
-            document.getElementById('review-phone').textContent = phone; 
-            // ★ 修改：ID 改為 review-staff, 來源改為 staff
+            document.getElementById('review-phone').textContent = phone;             
+            document.getElementById('review-email').textContent = email || "(未填寫)";
             document.getElementById('review-staff').textContent = document.getElementById('staff').value || "(不指定)"; 
             document.getElementById('review-time').textContent = time;
             
@@ -289,7 +308,7 @@
                     name: g_displayName,
                     form_name: formData.form_name,
                     form_phone: formData.form_phone,
-                    // ★ 修改：改為 form_staff
+                    form_email: formData.form_email,
                     form_staff: formData.form_staff,
                     form_time: formData.form_time
                 }) 
@@ -304,8 +323,10 @@
                 const formData = getFormData();
                 if (liff.isInClient()) {
                     // ★ 修改：LINE 訊息內容也改為動態 (或是通用詞)
-                    // 這裡先用 "指定人員" 以保持通用，或可用 g_staffTitle 變數
-                    const msg = `預約資料如下\n姓名: ${formData.form_name}\n電話: ${formData.form_phone}\n指定${g_staffTitle}: ${formData.form_staff}\n期望時間: ${formData.form_time}`;
+                    // 這裡先用 "指定人員" 以保持通用，或可用 g_staffTitle 變數                  
+                    const emailMsg = formData.form_email ? `\nEmail: ${formData.form_email}` : "";
+                    const msg = `預約資料如下\n姓名: ${formData.form_name}\n電話: ${formData.form_phone}${emailMsg}\n指定${g_staffTitle}: ${formData.form_staff}\n期望時間: ${formData.form_time}`;
+
                     await liff.sendMessages([{ type: 'text', text: msg }]);
                 }
                 syncData('submit_form', true);
@@ -322,10 +343,11 @@
 
         function getFormData() {
             return {
-                uid: g_uid, line_name: g_displayName,
+                uid: g_uid, 
+                line_name: g_displayName,
                 form_name: document.getElementById('name').value,
-                form_phone: document.getElementById('phone').value,
-                // ★ 修改：ID 改為 staff，變數改為 form_staff
+                form_phone: document.getElementById('phone').value,                
+                form_email: document.getElementById('email').value.trim(),
                 form_staff: document.getElementById('staff').value,
                 form_time: document.getElementById('time_slots').value
             };
